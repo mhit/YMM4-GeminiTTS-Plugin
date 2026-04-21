@@ -20,7 +20,7 @@ public static class VoiceCatalog
         new GeminiVoice("Leda",          "Leda (若々しい)",            "Youthful"),
         new GeminiVoice("Orus",          "Orus (重厚)",                "Firm"),
         new GeminiVoice("Aoede",         "Aoede (軽やか)",             "Breezy"),
-        new GeminiVoice("Callirhoe",     "Callirhoe (穏やか)",         "Easy-going"),
+        new GeminiVoice("Callirrhoe",    "Callirrhoe (穏やか)",        "Easy-going"),
         new GeminiVoice("Autonoe",       "Autonoe (明朗)",             "Bright"),
         new GeminiVoice("Enceladus",     "Enceladus (息感)",           "Breathy"),
         new GeminiVoice("Iapetus",       "Iapetus (澄んだ)",           "Clear"),

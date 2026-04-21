@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using YukkuriMovieMaker.Plugin.Voice;
 using YMM4.GeminiTTS.Plugin.Settings;
@@ -13,6 +14,10 @@ namespace YMM4.GeminiTTS.Plugin;
 internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
 {
     public const string ApiId = "GeminiTTS";
+
+    // Serialize concurrent synthesis across all voices to avoid hammering
+    // Cloud TTS quotas during bulk script imports.
+    static readonly SemaphoreSlim semaphore = new(1);
 
     readonly GeminiVoice voice;
 
@@ -45,27 +50,35 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
         string text, IVoicePronounce? pronounce, IVoiceParameter? parameter, string filePath)
     {
         var settings = GeminiTtsSettings.Default;
-        var client = GeminiTtsClient.Create(settings.ServiceAccountJsonPath);
 
         var perUtterance = (parameter as GeminiVoiceParameter)?.StylePrompt;
         var stylePrompt = string.IsNullOrWhiteSpace(perUtterance)
             ? settings.DefaultStylePrompt
             : perUtterance;
 
-        await client.SynthesizeToFileAsync(
-            new SynthesisRequest
-            {
-                Text = text,
-                VoiceName = voice.Name,
-                LanguageCode = string.IsNullOrWhiteSpace(settings.LanguageCode)
-                    ? "ja-JP"
-                    : settings.LanguageCode,
-                SampleRateHertz = settings.SampleRateHertz > 0
-                    ? settings.SampleRateHertz
-                    : 24000,
-                StylePrompt = stylePrompt,
-            },
-            filePath).ConfigureAwait(false);
+        await semaphore.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var client = GeminiTtsClient.Create(settings.ServiceAccountJsonPath);
+            await client.SynthesizeToFileAsync(
+                new SynthesisRequest
+                {
+                    Text = text,
+                    VoiceName = voice.Name,
+                    LanguageCode = string.IsNullOrWhiteSpace(settings.LanguageCode)
+                        ? "ja-JP"
+                        : settings.LanguageCode,
+                    SampleRateHertz = settings.SampleRateHertz > 0
+                        ? settings.SampleRateHertz
+                        : 24000,
+                    StylePrompt = stylePrompt,
+                },
+                filePath).ConfigureAwait(false);
+        }
+        finally
+        {
+            semaphore.Release();
+        }
 
         // No pronunciation-edit object to return.
         return null;

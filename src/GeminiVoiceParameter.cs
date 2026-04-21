@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using YukkuriMovieMaker.Controls;
 using YukkuriMovieMaker.Plugin.Voice;
 
 namespace YMM4.GeminiTTS.Plugin;
@@ -16,6 +17,7 @@ internal class GeminiVoiceParameter : VoiceParameterBase
     [Display(
         Name = "Style Prompt",
         Description = "このセリフに前置する自然言語のスタイル指示 (例: 囁き声で、少しためらいながら)。空の場合はプラグイン設定のデフォルトが使われます。")]
+    [TextEditor]
     [DefaultValue("")]
     public string StylePrompt
     {
