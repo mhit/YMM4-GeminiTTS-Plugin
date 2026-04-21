@@ -14,20 +14,39 @@ public class GeminiTtsSettings : SettingsBase<GeminiTtsSettings>
     public override bool HasSettingView => true;
     public override object? SettingView => new GeminiTtsSettingView { DataContext = this };
 
-    // ---- Persisted state ----
+    // ---- Credentials / transport ----
 
     string? serviceAccountJsonPath;
-    string defaultVoiceName = VoiceCatalog.Default.Name;
-    string languageCode = "ja-JP";
-    int sampleRateHertz = 24000;
-    string defaultStylePrompt =
-        "プロのナレーターとして、落ち着いた口調で、聞き取りやすく話してください";
+    string endpoint = string.Empty;
+    int requestTimeoutSeconds = 60;
 
     public string? ServiceAccountJsonPath
     {
         get => serviceAccountJsonPath;
         set => Set(ref serviceAccountJsonPath, value);
     }
+
+    /// <summary>
+    /// Optional Cloud TTS host override (e.g. <c>us-texttospeech.googleapis.com:443</c>).
+    /// Empty = global default host.
+    /// </summary>
+    public string Endpoint
+    {
+        get => endpoint;
+        set => Set(ref endpoint, value ?? string.Empty);
+    }
+
+    public int RequestTimeoutSeconds
+    {
+        get => requestTimeoutSeconds;
+        set => Set(ref requestTimeoutSeconds, value);
+    }
+
+    // ---- Voice selection defaults ----
+
+    string defaultVoiceName = VoiceCatalog.Default.Name;
+    string languageCode = "ja-JP";
+    int sampleRateHertz = 24000;
 
     public string DefaultVoiceName
     {
@@ -47,10 +66,28 @@ public class GeminiTtsSettings : SettingsBase<GeminiTtsSettings>
         set => Set(ref sampleRateHertz, value);
     }
 
+    // ---- Prompt & audio post-processing ----
+
+    string defaultStylePrompt =
+        "プロのナレーターとして、落ち着いた口調で、聞き取りやすく話してください";
+
+    /// <summary>
+    /// Value for Cloud TTS <c>AudioConfig.effects_profile_id</c>. Empty = no
+    /// post-processing. Multiple profiles (semicolon-separated) are applied
+    /// left-to-right.
+    /// </summary>
+    string effectsProfileId = "headphone-class-device";
+
     public string DefaultStylePrompt
     {
         get => defaultStylePrompt;
         set => Set(ref defaultStylePrompt, value);
+    }
+
+    public string EffectsProfileId
+    {
+        get => effectsProfileId;
+        set => Set(ref effectsProfileId, value ?? string.Empty);
     }
 
     public override void Initialize() { }

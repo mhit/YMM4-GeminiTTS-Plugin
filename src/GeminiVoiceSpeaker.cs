@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using YukkuriMovieMaker.Plugin.Voice;
@@ -15,8 +16,8 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
 {
     public const string ApiId = "GeminiTTS";
 
-    // Serialize concurrent synthesis across all voices to avoid hammering
-    // Cloud TTS quotas during bulk script imports.
+    // Serialize concurrent synthesis across all voices so bulk script imports
+    // don't blow past the Cloud TTS per-project quota.
     static readonly SemaphoreSlim semaphore = new(1);
 
     readonly GeminiVoice voice;
@@ -44,7 +45,7 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
 
     public Task<string> ConvertKanjiToYomiAsync(string text, IVoiceParameter voiceParameter) =>
         // YMM4 only calls this when Format == Custom; we're Text.
-        throw new System.NotImplementedException();
+        throw new NotImplementedException();
 
     public async Task<IVoicePronounce?> CreateVoiceAsync(
         string text, IVoicePronounce? pronounce, IVoiceParameter? parameter, string filePath)
@@ -56,10 +57,19 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
             ? settings.DefaultStylePrompt
             : perUtterance;
 
+        var effects = SplitEffects(settings.EffectsProfileId);
+        var timeout = settings.RequestTimeoutSeconds > 0
+            ? TimeSpan.FromSeconds(settings.RequestTimeoutSeconds)
+            : (TimeSpan?)null;
+
         await semaphore.WaitAsync().ConfigureAwait(false);
         try
         {
-            var client = GeminiTtsClient.Create(settings.ServiceAccountJsonPath);
+            var client = GeminiTtsClient.GetOrCreate(
+                settings.ServiceAccountJsonPath,
+                settings.Endpoint,
+                timeout);
+
             await client.SynthesizeToFileAsync(
                 new SynthesisRequest
                 {
@@ -72,6 +82,7 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
                         ? settings.SampleRateHertz
                         : 24000,
                     StylePrompt = stylePrompt,
+                    EffectsProfileIds = effects,
                 },
                 filePath).ConfigureAwait(false);
         }
@@ -80,7 +91,12 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
             semaphore.Release();
         }
 
-        // No pronunciation-edit object to return.
         return null;
+    }
+
+    static string[] SplitEffects(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return [];
+        return raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 }

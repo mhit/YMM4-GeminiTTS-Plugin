@@ -6,14 +6,13 @@
              xmlns:local="clr-namespace:YMM4.GeminiTTS.Plugin.Settings"
              d:DataContext="{d:DesignInstance Type=local:GeminiTtsSettings}"
              mc:Ignorable="d"
-             d:DesignHeight="520" d:DesignWidth="700">
+             d:DesignHeight="680" d:DesignWidth="700">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="8">
-            <Expander Header="Google Cloud Text-to-Speech 接続設定" IsExpanded="True">
+
+            <Expander Header="Google Cloud 認証" IsExpanded="True">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
@@ -34,43 +33,101 @@
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,8,4"
                                VerticalAlignment="Center"
+                               Text="Endpoint (省略可)"/>
+                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4,4,4" Grid.ColumnSpan="2"
+                               Text="{Binding Endpoint, UpdateSourceTrigger=PropertyChanged}"
+                               ToolTip="例: eu-texttospeech.googleapis.com:443 / us-texttospeech.googleapis.com:443 / asia-northeast1-texttospeech.googleapis.com:443 (空欄でグローバル既定)"/>
+                </Grid>
+            </Expander>
+
+            <Expander Header="音声設定" IsExpanded="True" Margin="0,8,0,0">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,4"
+                               VerticalAlignment="Center"
                                Text="言語コード"/>
-                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4,4,4"
-                               Text="{Binding LanguageCode, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
+                               Text="{Binding LanguageCode, UpdateSourceTrigger=PropertyChanged}"
+                               ToolTip="BCP-47 (例: ja-JP, en-US, zh-CN)。Gemini 3.1 Flash TTS は 70+ 言語対応。"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,8,4"
+                               VerticalAlignment="Center"
+                               Text="サンプルレート (Hz)"/>
+                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4,0,4"
+                               Text="{Binding SampleRateHertz, UpdateSourceTrigger=PropertyChanged}"
+                               ToolTip="Gemini のネイティブは 24000 Hz。48000 等を指定すると Cloud TTS 側で再サンプリングされる。"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,4,8,4"
                                VerticalAlignment="Center"
-                               Text="サンプルレート (Hz)"/>
-                    <TextBox   Grid.Row="2" Grid.Column="1" Margin="0,4,4,4"
-                               Text="{Binding SampleRateHertz, UpdateSourceTrigger=PropertyChanged}"/>
+                               Text="デフォルト Voice"/>
+                    <TextBox   Grid.Row="2" Grid.Column="1" Margin="0,4,0,4"
+                               Text="{Binding DefaultVoiceName, UpdateSourceTrigger=PropertyChanged}"
+                               ToolTip="30 voice のいずれか (例: Kore / Zephyr / Puck)。"/>
 
                     <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4,8,4"
                                VerticalAlignment="Center"
-                               Text="デフォルト Voice"/>
-                    <TextBox   Grid.Row="3" Grid.Column="1" Margin="0,4,4,4"
-                               Text="{Binding DefaultVoiceName, UpdateSourceTrigger=PropertyChanged}"
-                               ToolTip="30 voice のいずれか (例: Kore / Zephyr / Puck)"/>
+                               Text="Effects Profile"/>
+                    <TextBox   Grid.Row="3" Grid.Column="1" Margin="0,4,0,4"
+                               Text="{Binding EffectsProfileId, UpdateSourceTrigger=PropertyChanged}"
+                               ToolTip="headphone-class-device / telephony-class-application / large-home-entertainment-class-device 等。セミコロン区切りで複数指定可。"/>
                 </Grid>
             </Expander>
 
             <Expander Header="スタイルプロンプト (全発話の前置指示)" IsExpanded="True" Margin="0,8,0,0">
                 <Grid Margin="8">
                     <TextBox AcceptsReturn="True" TextWrapping="Wrap"
-                             Height="120"
+                             Height="100"
                              VerticalScrollBarVisibility="Auto"
                              Text="{Binding DefaultStylePrompt, UpdateSourceTrigger=PropertyChanged}"/>
                 </Grid>
             </Expander>
 
-            <Expander Header="動作確認" IsExpanded="False" Margin="0,8,0,0">
+            <Expander Header="詳細" IsExpanded="False" Margin="0,8,0,0">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,4"
+                               VerticalAlignment="Center"
+                               Text="リクエストタイムアウト (秒)"/>
+                    <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
+                               Text="{Binding RequestTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"/>
+                </Grid>
+            </Expander>
+
+            <Expander Header="接続テスト / Voice 一覧" IsExpanded="False" Margin="0,8,0,0">
                 <StackPanel Margin="8">
                     <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
-                               Text="設定した認証情報・Voice でテスト合成を行い、既定のテンポラリフォルダーに WAV を書き出します。"/>
-                    <Button Content="テスト合成を実行" HorizontalAlignment="Left" Padding="12,4"
-                            Click="TestSynthesisButton_Click"/>
-                    <TextBlock Name="TestResultText" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                               Text="認証情報とモデル設定で API に到達できるかを確認します。「テスト合成」は一時フォルダへ WAV を書き出し、「Voice 一覧を取得」は Cloud TTS の ListVoices で現在有効な Gemini voice 名を取得します。"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <Button Content="テスト合成を実行" Padding="12,4" Margin="0,0,8,0"
+                                Click="TestSynthesisButton_Click"/>
+                        <Button Content="Voice 一覧を取得" Padding="12,4"
+                                Click="ListVoicesButton_Click"/>
+                    </StackPanel>
+                    <TextBox Name="TestResultText" Margin="0,8,0,0"
+                             IsReadOnly="True"
+                             MinHeight="60" MaxHeight="200"
+                             VerticalScrollBarVisibility="Auto"
+                             TextWrapping="Wrap"/>
                 </StackPanel>
             </Expander>
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>
