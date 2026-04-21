@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>YMM4.GeminiTTS.Plugin</RootNamespace>
+    <AssemblyName>YMM4.GeminiTTS.Plugin</AssemblyName>
+    <Version>0.1.0</Version>
+    <Authors>mhit</Authors>
+    <Description>Gemini 3.1 Flash TTS plugin for YukkuriMovieMaker 4.</Description>
+    <Copyright>Copyright (c) 2026 mhit</Copyright>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Avoid pulling in Google.* runtime dependencies that YMM4 itself already ships. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!--
+    YMM4 assemblies.
+    Set the YMM4_DIR env var (or pass /p:YMM4Dir=...) to the YMM4 install folder, e.g.
+        C:\Program Files\YukkuriMovieMaker
+    We reference the DLLs without copying them so an updated YMM4 can swap them at runtime.
+  -->
+  <PropertyGroup>
+    <YMM4Dir Condition="'$(YMM4Dir)' == ''">$(YMM4_DIR)</YMM4Dir>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(YMM4Dir)' != ''">
+    <Reference Include="YukkuriMovieMaker.Plugin">
+      <HintPath>$(YMM4Dir)\YukkuriMovieMaker.Plugin.dll</HintPath>
+      <Private>false</Private>
+      <CopyLocal>false</CopyLocal>
+    </Reference>
+    <Reference Include="YukkuriMovieMaker.Controls">
+      <HintPath>$(YMM4Dir)\YukkuriMovieMaker.Controls.dll</HintPath>
+      <Private>false</Private>
+      <CopyLocal>false</CopyLocal>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Cloud.TextToSpeech.V1" Version="3.10.0" />
+  </ItemGroup>
+
+</Project>
