@@ -7,6 +7,9 @@ public sealed class SynthesisRequest
     public required string VoiceName { get; init; }
     public string LanguageCode { get; init; } = "ja-JP";
     public int SampleRateHertz { get; init; } = 24000;
-    /// <summary>Optional natural-language style directive prepended to <see cref="Text"/>.</summary>
+    /// <summary>
+    /// Optional natural-language system instruction (e.g. "speak in a calm, professional tone").
+    /// Passed through <c>SynthesisInput.Prompt</c>, not concatenated into <see cref="Text"/>.
+    /// </summary>
     public string? StylePrompt { get; init; }
 }

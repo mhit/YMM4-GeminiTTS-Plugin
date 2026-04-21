@@ -58,7 +58,8 @@ YMM4 → 設定 → プラグイン → **Gemini TTS**:
 | デフォルトスタイルプロンプト | 全発話に前置する指示文 |
 | サンプルレート | 24000 Hz 推奨（Gemini ネイティブ） / 48000 Hz も可 |
 
-設定ファイルの保存先: `%APPDATA%\YMM4\Plugins\GeminiTTS\settings.json`
+設定は YMM4 本体の設定保存機構（`SettingsBase<T>`）を利用するため、他の
+音声プラグインと同じ場所（YMM4 の設定フォルダ配下）に自動保存されます。
 
 ## 使い方
 

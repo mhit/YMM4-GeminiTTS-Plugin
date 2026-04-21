@@ -43,8 +43,8 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
         currentParameter is GeminiVoiceParameter ? currentParameter : CreateVoiceParameter();
 
     public Task<string> ConvertKanjiToYomiAsync(string text, IVoiceParameter voiceParameter) =>
-        // Not used when Format == Text.
-        Task.FromResult(text);
+        // YMM4 only calls this when Format == Custom; we're Text.
+        throw new System.NotImplementedException();
 
     public async Task<IVoicePronounce?> CreateVoiceAsync(
         string text, IVoicePronounce? pronounce, IVoiceParameter? parameter, string filePath)

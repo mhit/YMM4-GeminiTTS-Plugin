@@ -12,7 +12,7 @@ public class GeminiTtsSettings : SettingsBase<GeminiTtsSettings>
     public override SettingsCategory Category => SettingsCategory.Voice;
     public override string Name => "Gemini TTS";
     public override bool HasSettingView => true;
-    public override object SettingView => new GeminiTtsSettingView { DataContext = this };
+    public override object? SettingView => new GeminiTtsSettingView { DataContext = this };
 
     // ---- Persisted state ----
 
@@ -53,8 +53,5 @@ public class GeminiTtsSettings : SettingsBase<GeminiTtsSettings>
         set => Set(ref defaultStylePrompt, value);
     }
 
-    public override void Initialize()
-    {
-        // Nothing to do — Set() calls handle change notifications and persistence.
-    }
+    public override void Initialize() { }
 }

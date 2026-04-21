@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Google.Apis.Auth.OAuth2;
 using Google.Cloud.TextToSpeech.V1;
 
 namespace YMM4.GeminiTTS.Plugin.Synthesis;
@@ -13,15 +12,16 @@ namespace YMM4.GeminiTTS.Plugin.Synthesis;
 /// </summary>
 /// <remarks>
 /// Gemini TTS ignores <c>pitch</c>/<c>speakingRate</c> and does not accept SSML;
-/// every delivery hint must be baked into the text prompt itself.
+/// style is delivered via <see cref="SynthesisInput.Prompt"/>, a separate
+/// system-instruction field supported by controllable voice models.
 /// </remarks>
 public sealed class GeminiTtsClient
 {
     public const string ModelName = "gemini-3.1-flash-tts-preview";
 
-    private readonly TextToSpeechClient _client;
+    readonly TextToSpeechClient client;
 
-    private GeminiTtsClient(TextToSpeechClient client) => _client = client;
+    GeminiTtsClient(TextToSpeechClient client) => this.client = client;
 
     public static GeminiTtsClient Create(string? serviceAccountJsonPath)
     {
@@ -42,12 +42,14 @@ public sealed class GeminiTtsClient
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var prompt = StylePromptBuilder.Build(request.Text, request.StylePrompt);
+        var input = new SynthesisInput { Text = request.Text };
+        if (!string.IsNullOrWhiteSpace(request.StylePrompt))
+            input.Prompt = request.StylePrompt;
 
-        var response = await _client.SynthesizeSpeechAsync(
+        var response = await client.SynthesizeSpeechAsync(
             new SynthesizeSpeechRequest
             {
-                Input = new SynthesisInput { Text = prompt },
+                Input = input,
                 Voice = new VoiceSelectionParams
                 {
                     LanguageCode = request.LanguageCode,
