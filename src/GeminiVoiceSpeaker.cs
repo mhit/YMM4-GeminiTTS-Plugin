@@ -57,6 +57,11 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
             ? settings.DefaultStylePrompt
             : perUtterance;
 
+        // Kanji→yomigana substitution before the text hits Cloud TTS.
+        // Gemini reads literal characters, so we rewrite homonyms / company
+        // names / modern loanwords via the user dictionary.
+        var rewrittenText = YomiDictionary.Apply(text, settings.UserDictionary);
+
         var effects = SplitEffects(settings.EffectsProfileId);
         var timeout = settings.RequestTimeoutSeconds > 0
             ? TimeSpan.FromSeconds(settings.RequestTimeoutSeconds)
@@ -73,7 +78,7 @@ internal sealed class GeminiVoiceSpeaker : IVoiceSpeaker
             await client.SynthesizeToFileAsync(
                 new SynthesisRequest
                 {
-                    Text = text,
+                    Text = rewrittenText,
                     VoiceName = voice.Name,
                     LanguageCode = string.IsNullOrWhiteSpace(settings.LanguageCode)
                         ? "ja-JP"

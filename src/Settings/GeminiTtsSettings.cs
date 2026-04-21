@@ -78,6 +78,13 @@ public class GeminiTtsSettings : SettingsBase<GeminiTtsSettings>
     /// </summary>
     string effectsProfileId = "headphone-class-device";
 
+    /// <summary>
+    /// Multi-line kanji→yomigana substitution table, one <c>phrase=yomi</c>
+    /// entry per line. Gemini TTS ignores Cloud TTS' <c>custom_pronunciations</c>
+    /// field, so the only reliable override is rewriting characters directly.
+    /// </summary>
+    string userDictionary = string.Empty;
+
     public string DefaultStylePrompt
     {
         get => defaultStylePrompt;
@@ -88,6 +95,12 @@ public class GeminiTtsSettings : SettingsBase<GeminiTtsSettings>
     {
         get => effectsProfileId;
         set => Set(ref effectsProfileId, value ?? string.Empty);
+    }
+
+    public string UserDictionary
+    {
+        get => userDictionary;
+        set => Set(ref userDictionary, value ?? string.Empty);
     }
 
     public override void Initialize() { }
