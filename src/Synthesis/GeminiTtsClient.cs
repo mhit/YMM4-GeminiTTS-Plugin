@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Api.Gax.Grpc;
+using Google.Apis.Auth.OAuth2;
 using Google.Cloud.TextToSpeech.V1;
 
 namespace YMM4.GeminiTTS.Plugin.Synthesis;
@@ -76,7 +77,12 @@ public sealed class GeminiTtsClient
                 throw new FileNotFoundException(
                     $"Service account JSON not found: {credentialsPath}",
                     credentialsPath);
-            builder.CredentialsPath = credentialsPath;
+            // Read the JSON ourselves rather than letting the SDK take a raw
+            // path. Both ClientBuilder.CredentialsPath and GoogleCredential.FromFile
+            // / FromJson are marked obsolete; CredentialFactory is the
+            // still-supported loader.
+            var json = File.ReadAllText(credentialsPath);
+            builder.Credential = CredentialFactory.FromJson<GoogleCredential>(json);
         }
 
         if (!string.IsNullOrEmpty(endpoint))
