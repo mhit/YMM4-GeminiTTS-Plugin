@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using YukkuriMovieMaker.Plugin;
 using YukkuriMovieMaker.Plugin.Voice;
 using YMM4.GeminiTTS.Plugin.Settings;
+using YMM4.GeminiTTS.Plugin.Updater;
 using YMM4.GeminiTTS.Plugin.Voices;
 
 namespace YMM4.GeminiTTS.Plugin;
@@ -15,6 +16,12 @@ namespace YMM4.GeminiTTS.Plugin;
 /// </summary>
 public sealed class GeminiVoicePlugin : IVoicePlugin
 {
+    public GeminiVoicePlugin()
+    {
+        // バックグラウンドで GitHub 最新バージョンを確認（初回のみ、UIをブロックしない）
+        UpdateChecker.CheckOnce();
+    }
+
     public string Name => "Geminiナレーター";
 
     /// <summary>

@@ -10,6 +10,23 @@
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="8">
 
+            <!-- アップデート通知バナー（新バージョン検出時のみ表示） -->
+            <Border x:Name="UpdateBanner"
+                    Visibility="Collapsed"
+                    Background="#1565C0"
+                    CornerRadius="4"
+                    Padding="12,8"
+                    Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Text="🆕 新バージョンが利用可能です: "/>
+                    <TextBlock x:Name="UpdateVersionText" Foreground="White" FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Foreground="#BBDEFB" Margin="8,0,0,0" VerticalAlignment="Center"
+                               Text="— PowerShell で irm https://raw.githubusercontent.com/mhit/YMM4-GeminiTTS-Plugin/main/install.ps1 | iex を実行するとアップデートできます。"/>
+                </StackPanel>
+            </Border>
+
             <!-- API キー設定手順 -->
             <Expander Header="📋 API キー取得手順（初回のみ）" IsExpanded="True">
                 <Border Margin="8,4,8,8" Padding="12" CornerRadius="4"

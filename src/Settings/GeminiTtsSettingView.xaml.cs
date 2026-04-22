@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using YMM4.GeminiTTS.Plugin.Synthesis;
+using YMM4.GeminiTTS.Plugin.Updater;
 using YMM4.GeminiTTS.Plugin.Voices;
 
 namespace YMM4.GeminiTTS.Plugin.Settings;
@@ -30,6 +31,23 @@ public partial class GeminiTtsSettingView : UserControl
         LanguageComboBox.ItemsSource = LanguageCodes;
         VoiceComboBox.ItemsSource = VoiceCatalog.All;
         ModelComboBox.ItemsSource = Models;
+
+        // 設定画面が開くたびに更新チェックをトリガー（初回のみ実際にAPIを叩く）
+        UpdateChecker.UpdateAvailable += OnUpdateAvailable;
+        UpdateChecker.CheckOnce();
+
+        // 既にチェック済みで新バージョンが見つかっていた場合は即時バナー表示
+        if (UpdateChecker.LatestTag is string tag)
+            OnUpdateAvailable(tag);
+    }
+
+    void OnUpdateAvailable(string tag)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            UpdateVersionText.Text = tag;
+            UpdateBanner.Visibility = Visibility.Visible;
+        });
     }
 
     void BulkRegisterButton_Click(object sender, RoutedEventArgs e)
