@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Extract version from tag
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $ver = $tag.TrimStart('v')
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        run: dotnet build -c Release /p:Version=${{ steps.ver.outputs.version }}
+
+      - name: Create zip
+        shell: pwsh
+        run: |
+          $src = "bin\Release\net10.0-windows10.0.19041.0\YMM4.GeminiTTS.Plugin.dll"
+          $zip = "YMM4.GeminiTTS.Plugin-${{ steps.ver.outputs.version }}.zip"
+          Compress-Archive -Path $src -DestinationPath $zip
+          echo "ZIP=$zip" >> $env:GITHUB_OUTPUT
+        id: zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Geminiナレーター v${{ steps.ver.outputs.version }}"
+          body: |
+            ## インストール
+
+            ### 自動（推奨）
+            PowerShell で以下を実行:
+            ```powershell
+            irm https://raw.githubusercontent.com/mhit/YMM4-GeminiTTS-Plugin/main/install.ps1 | iex
+            ```
+
+            ### 手動
+            1. `YMM4.GeminiTTS.Plugin-${{ steps.ver.outputs.version }}.zip` を展開
+            2. `YMM4.GeminiTTS.Plugin.dll` を `%LocalAppData%\YukkuriMovieMaker4\user\plugin\YMM4.GeminiTTS.Plugin\` にコピー
+            3. YMM4 を再起動
+
+            ## 変更内容
+            ${{ github.event.head_commit.message }}
+          files: YMM4.GeminiTTS.Plugin-${{ steps.ver.outputs.version }}.zip
+          draft: false
+          prerelease: false
