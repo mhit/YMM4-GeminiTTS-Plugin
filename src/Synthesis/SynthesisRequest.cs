@@ -9,14 +9,14 @@ public sealed class SynthesisRequest
     public int SampleRateHertz { get; init; } = 24000;
 
     /// <summary>
-    /// Optional natural-language system instruction (e.g. "speak in a calm, professional tone").
-    /// Passed through <c>SynthesisInput.Prompt</c>, not concatenated into <see cref="Text"/>.
+    /// Director's Notes として送るスタイル指示（例: "Speak calmly and professionally"）。
+    /// null/空の場合はプロンプトなしでテキストのみ送信。
     /// </summary>
     public string? StylePrompt { get; init; }
 
     /// <summary>
-    /// Optional Cloud TTS <c>effects_profile_id</c> values applied in order
-    /// (e.g. <c>"headphone-class-device"</c>). Empty means no post-processing.
+    /// テキストの先頭に付加する Audio Tag（例: "[whispers]", "[excited]"）。
+    /// Transcript 内にインラインで埋め込まれる。
     /// </summary>
-    public IReadOnlyList<string>? EffectsProfileIds { get; init; }
+    public string? AudioTag { get; init; }
 }

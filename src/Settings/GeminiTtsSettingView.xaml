@@ -6,140 +6,199 @@
              xmlns:local="clr-namespace:YMM4.GeminiTTS.Plugin.Settings"
              d:DataContext="{d:DesignInstance Type=local:GeminiTtsSettings}"
              mc:Ignorable="d"
-             d:DesignHeight="980" d:DesignWidth="700">
+             d:DesignHeight="900" d:DesignWidth="700">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="8">
 
-            <Expander Header="Google Cloud 認証" IsExpanded="True">
+            <!-- API キー設定手順 -->
+            <Expander Header="📋 API キー取得手順（初回のみ）" IsExpanded="True">
+                <Border Margin="8,4,8,8" Padding="12" CornerRadius="4"
+                        BorderBrush="#CCCCCC" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,8"
+                                   Text="Gemini API キーを Google AI Studio から取得してください。"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,2,8,4" FontWeight="Bold" Text="①"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,2,0,4" TextWrapping="Wrap"
+                                       Text="aistudio.google.com にアクセス"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,2,8,4" FontWeight="Bold" Text="②"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,2,0,4" TextWrapping="Wrap"
+                                       Text="左メニュー「Get API key」→「APIキーを作成」"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,2,8,4" FontWeight="Bold" Text="③"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,2,0,4" TextWrapping="Wrap"
+                                       Foreground="DarkRed"
+                                       Text="発行された API キーをコピーして下の「Gemini API キー」欄に貼り付け"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,2,8,4" FontWeight="Bold" Text="💡"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,2,0,4" TextWrapping="Wrap"
+                                       Opacity="0.7"
+                                       Text="無料枠あり（1分10リクエスト等）。超過分は従量課金。API キーは他人に見せないよう管理してください。"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Expander>
+
+            <!-- 認証設定 -->
+            <Expander Header="認証設定" IsExpanded="True" Margin="0,8,0,0">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="160"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,4"
+                               VerticalAlignment="Center" Text="Gemini API キー"/>
+                    <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
                                VerticalAlignment="Center"
-                               Text="Service Account JSON"/>
-                    <TextBox  Grid.Row="0" Grid.Column="1" Margin="0,0,4,4"
-                              Text="{Binding ServiceAccountJsonPath, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Button   Grid.Row="0" Grid.Column="2" Margin="0,0,0,4"
-                              Content="参照..." Padding="8,2"
-                              Click="BrowseJsonButton_Click"/>
+                               Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}"
+                               ToolTip="aistudio.google.com で取得した API キー"/>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,8,4"
-                               VerticalAlignment="Center"
-                               Text="Endpoint (省略可)"/>
-                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4,4,4" Grid.ColumnSpan="2"
-                               Text="{Binding Endpoint, UpdateSourceTrigger=PropertyChanged}"
-                               ToolTip="例: eu-texttospeech.googleapis.com:443 / us-texttospeech.googleapis.com:443 / asia-northeast1-texttospeech.googleapis.com:443 (空欄でグローバル既定)"/>
+                               VerticalAlignment="Center" Text="モデル"/>
+                    <ComboBox  Grid.Row="1" Grid.Column="1" Margin="0,4,0,4"
+                               x:Name="ModelComboBox"
+                               IsEditable="True"
+                               Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}"
+                               ToolTip="Gemini TTS モデル名。現行: gemini-2.5-flash-preview-tts"/>
                 </Grid>
             </Expander>
 
+            <!-- 音声設定 -->
             <Expander Header="音声設定" IsExpanded="True" Margin="0,8,0,0">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="160"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,4"
-                               VerticalAlignment="Center"
-                               Text="言語コード"/>
-                    <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
+                               VerticalAlignment="Center" Text="言語コード"/>
+                    <ComboBox  Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
+                               x:Name="LanguageComboBox"
+                               IsEditable="True"
                                Text="{Binding LanguageCode, UpdateSourceTrigger=PropertyChanged}"
-                               ToolTip="BCP-47 (例: ja-JP, en-US, zh-CN)。Gemini 3.1 Flash TTS は 70+ 言語対応。"/>
+                               ToolTip="BCP-47 形式 (例: ja-JP, en-US)"/>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,8,4"
-                               VerticalAlignment="Center"
-                               Text="サンプルレート (Hz)"/>
-                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4,0,4"
-                               Text="{Binding SampleRateHertz, UpdateSourceTrigger=PropertyChanged}"
-                               ToolTip="Gemini のネイティブは 24000 Hz。48000 等を指定すると Cloud TTS 側で再サンプリングされる。"/>
-
-                    <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,4,8,4"
-                               VerticalAlignment="Center"
-                               Text="デフォルト Voice"/>
-                    <TextBox   Grid.Row="2" Grid.Column="1" Margin="0,4,0,4"
-                               Text="{Binding DefaultVoiceName, UpdateSourceTrigger=PropertyChanged}"
-                               ToolTip="30 voice のいずれか (例: Kore / Zephyr / Puck)。"/>
-
-                    <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4,8,4"
-                               VerticalAlignment="Center"
-                               Text="Effects Profile"/>
-                    <TextBox   Grid.Row="3" Grid.Column="1" Margin="0,4,0,4"
-                               Text="{Binding EffectsProfileId, UpdateSourceTrigger=PropertyChanged}"
-                               ToolTip="headphone-class-device / telephony-class-application / large-home-entertainment-class-device 等。セミコロン区切りで複数指定可。"/>
+                               VerticalAlignment="Center" Text="デフォルト Voice"/>
+                    <ComboBox  Grid.Row="1" Grid.Column="1" Margin="0,4,0,4"
+                               x:Name="VoiceComboBox"
+                               DisplayMemberPath="DisplayName"
+                               SelectedValuePath="Name"
+                               SelectedValue="{Binding DefaultVoiceName}"
+                               ToolTip="新規キャラクター作成時のデフォルト Voice"/>
                 </Grid>
             </Expander>
 
-            <Expander Header="スタイルプロンプト (全発話の前置指示)" IsExpanded="True" Margin="0,8,0,0">
-                <Grid Margin="8">
-                    <TextBox AcceptsReturn="True" TextWrapping="Wrap"
-                             Height="100"
-                             VerticalScrollBarVisibility="Auto"
-                             Text="{Binding DefaultStylePrompt, UpdateSourceTrigger=PropertyChanged}"/>
-                </Grid>
-            </Expander>
-
-            <Expander Header="読み辞書 (漢字→よみがな置換)" IsExpanded="False" Margin="0,8,0,0">
+            <!-- デフォルトスタイルプロンプト -->
+            <Expander Header="デフォルトスタイルプロンプト" IsExpanded="True" Margin="0,8,0,0">
                 <StackPanel Margin="8">
-                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
-                               Text="1 行に 1 エントリ、形式は &quot;句=よみ&quot;。# で始まる行はコメント。Gemini TTS は Cloud TTS の custom_pronunciations を無視するため、ここで定義した置換はテキスト送信前にインラインで適用されます。"/>
-                    <TextBox AcceptsReturn="True" TextWrapping="NoWrap"
-                             FontFamily="Consolas, MS Gothic"
-                             Height="200"
-                             HorizontalScrollBarVisibility="Auto"
-                             VerticalScrollBarVisibility="Auto"
-                             Text="{Binding UserDictionary, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.75"
-                               Text="例:&#x0a;# 同音異義語&#x0a;橋=はし&#x0a;端=はし&#x0a;箸=はし&#x0a;&#x0a;# 社名・固有名詞&#x0a;アダマスオクタ=アダマスオクタ&#x0a;CIS=シーアイエス"/>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,4" Opacity="0.75"
+                               Text="口調・感情が「設定に従う（デフォルト）」のセリフに適用されるスタイル指示。例: 「落ち着いた口調で」「柔らかい声で」。空欄の場合はスタイル指示なしで合成します。&#x0a;&#x0a;セリフごとに口調を変えるには、YMM4 のセリフ編集パネルで各セリフの「口調・感情」を選択してください。「カスタム（下の入力欄を使用）」を選ぶと自由入力欄が有効になります。"/>
+                    <TextBox AcceptsReturn="True" TextWrapping="Wrap"
+                             Height="80" VerticalScrollBarVisibility="Auto"
+                             Text="{Binding DefaultStylePrompt, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
             </Expander>
 
+            <!-- 読み辞書 -->
+            <Expander Header="読み辞書（漢字→よみがな置換）" IsExpanded="False" Margin="0,8,0,0">
+                <StackPanel Margin="8">
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
+                               Text="1 行に 1 エントリ、形式は「句=よみ」。# で始まる行はコメント。&#x0a;テキスト送信前にインラインで置換されます。"/>
+                    <TextBox AcceptsReturn="True" TextWrapping="NoWrap"
+                             FontFamily="Consolas, MS Gothic"
+                             Height="180"
+                             HorizontalScrollBarVisibility="Auto"
+                             VerticalScrollBarVisibility="Auto"
+                             Text="{Binding UserDictionary, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.6"
+                               Text="例:&#x0a;橋=はし&#x0a;# 社名&#x0a;CIS=シーアイエス"/>
+                </StackPanel>
+            </Expander>
+
+            <!-- 詳細 -->
             <Expander Header="詳細" IsExpanded="False" Margin="0,8,0,0">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="160"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,4"
-                               VerticalAlignment="Center"
-                               Text="リクエストタイムアウト (秒)"/>
+                               VerticalAlignment="Center" Text="タイムアウト (秒)"/>
                     <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
-                               Text="{Binding RequestTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"/>
+                               Text="{Binding RequestTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
+                               ToolTip="0 以下で無制限"/>
                 </Grid>
             </Expander>
 
-            <Expander Header="接続テスト / Voice 一覧" IsExpanded="False" Margin="0,8,0,0">
+            <!-- キャラクター一括登録 -->
+            <Expander Header="キャラクター一括登録" IsExpanded="True" Margin="0,8,0,0">
                 <StackPanel Margin="8">
-                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
-                               Text="認証情報とモデル設定で API に到達できるかを確認します。「テスト合成」は一時フォルダへ WAV を書き出し、「Voice 一覧を取得」は Cloud TTS の ListVoices で現在有効な Gemini voice 名を取得します。"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <Button Content="テスト合成を実行" Padding="12,4" Margin="0,0,8,0"
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Opacity="0.75"
+                               Text="Gemini の全ボイス（30件）を YMM4 のキャラクター設定に一括追加します。&#x0a;追加後に YMM4 を自動で再起動して設定を反映します。未保存のプロジェクトは先に保存してください。"/>
+                    <Button Content="全ボイスを一括登録" Padding="12,4" HorizontalAlignment="Left"
+                            Click="BulkRegisterButton_Click"/>
+                    <TextBox Name="BulkRegisterResultText" Margin="0,8,0,0"
+                             IsReadOnly="True"
+                             MinHeight="40" MaxHeight="120"
+                             VerticalScrollBarVisibility="Auto"
+                             TextWrapping="Wrap"
+                             FontFamily="Consolas, MS Gothic"/>
+                </StackPanel>
+            </Expander>
+
+            <!-- 接続テスト -->
+            <Expander Header="接続テスト" IsExpanded="True" Margin="0,8,0,0">
+                <StackPanel Margin="8">
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Opacity="0.75"
+                               Text="「テスト合成」は Gemini API を実際に呼び出して一時フォルダに WAV を書き出します。API キーや設定の動作確認に使用してください。"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="テスト合成を実行" Padding="12,4"
                                 Click="TestSynthesisButton_Click"/>
-                        <Button Content="Voice 一覧を取得" Padding="12,4"
-                                Click="ListVoicesButton_Click"/>
+                        <ProgressBar x:Name="TestProgressBar"
+                                     IsIndeterminate="True"
+                                     Visibility="Collapsed"
+                                     Width="120" Height="16"
+                                     Margin="12,0,0,0"
+                                     VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TestProgressLabel"
+                                   Visibility="Collapsed"
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Text="合成中..." Opacity="0.7"/>
                     </StackPanel>
                     <TextBox Name="TestResultText" Margin="0,8,0,0"
                              IsReadOnly="True"
-                             MinHeight="60" MaxHeight="200"
+                             MinHeight="60" MaxHeight="300"
                              VerticalScrollBarVisibility="Auto"
-                             TextWrapping="Wrap"/>
+                             TextWrapping="Wrap"
+                             FontFamily="Consolas, MS Gothic"/>
                 </StackPanel>
             </Expander>
 

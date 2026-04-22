@@ -1,144 +1,115 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using Google.Api.Gax.Grpc;
-using Google.Apis.Auth.OAuth2;
-using Google.Cloud.TextToSpeech.V1;
 
 namespace YMM4.GeminiTTS.Plugin.Synthesis;
 
 /// <summary>
-/// Cached, thread-safe wrapper around <see cref="TextToSpeechClient"/> targeting
-/// the Gemini 3.1 Flash TTS preview model.
+/// Gemini API (generativelanguage.googleapis.com) を REST API で叩く TTS クライアント。
+/// <para>
+/// エンドポイント: <c>https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}</c>
+/// </para>
+/// <para>
+/// スタイルプロンプトは「指示：本文」形式でテキストの前に埋め込む。
+/// </para>
 /// </summary>
-/// <remarks>
-/// <para>
-/// Gemini TTS does not accept SSML and largely ignores <c>pitch</c>/<c>speakingRate</c>
-/// — style is delivered via <see cref="SynthesisInput.Prompt"/> plus inline
-/// audio tags inside <see cref="SynthesisInput.Text"/>.
-/// </para>
-/// <para>
-/// Clients are keyed by (endpoint, credentials path). YMM4 can fire many
-/// synthesize calls in quick succession when importing a script, so we avoid
-/// rebuilding the gRPC channel / parsing the service-account JSON per call.
-/// </para>
-/// </remarks>
 public sealed class GeminiTtsClient
 {
-    public const string ModelName = "gemini-3.1-flash-tts-preview";
+    static readonly HttpClient HttpClient = new();
+    static readonly ConcurrentDictionary<string, GeminiTtsClient> Cache = new();
 
-    static readonly ConcurrentDictionary<string, TextToSpeechClient> clients = new();
-
-    readonly TextToSpeechClient client;
+    readonly string apiKey;
+    readonly string model;
     readonly TimeSpan? requestTimeout;
 
-    GeminiTtsClient(TextToSpeechClient client, TimeSpan? requestTimeout)
+    GeminiTtsClient(string apiKey, string model, TimeSpan? requestTimeout)
     {
-        this.client = client;
+        this.apiKey = apiKey;
+        this.model = model;
         this.requestTimeout = requestTimeout;
     }
 
-    /// <summary>
-    /// Returns a cached client for the given configuration.
-    /// </summary>
-    /// <param name="serviceAccountJsonPath">
-    /// Path to a Google service-account JSON key. Pass null/empty to fall back
-    /// to Application Default Credentials (ADC).
-    /// </param>
-    /// <param name="endpoint">
-    /// Override host, e.g. <c>"eu-texttospeech.googleapis.com:443"</c>. Null or
-    /// empty uses the global default.
-    /// </param>
-    /// <param name="requestTimeout">
-    /// Per-request deadline. Null means the SDK default.
-    /// </param>
     public static GeminiTtsClient GetOrCreate(
-        string? serviceAccountJsonPath,
-        string? endpoint = null,
+        string? apiKey,
+        string? model,
         TimeSpan? requestTimeout = null)
     {
-        var normalizedPath = string.IsNullOrWhiteSpace(serviceAccountJsonPath) ? "" : serviceAccountJsonPath;
-        var normalizedEndpoint = string.IsNullOrWhiteSpace(endpoint) ? "" : endpoint;
-        var cacheKey = $"{normalizedEndpoint}|{normalizedPath}";
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException("Gemini API キーが設定されていません。プラグイン設定で API キーを入力してください。");
 
-        var tts = clients.GetOrAdd(cacheKey, _ => BuildClient(normalizedPath, normalizedEndpoint));
-        return new GeminiTtsClient(tts, requestTimeout);
+        var normalizedModel = string.IsNullOrWhiteSpace(model) ? "gemini-2.5-flash-preview-tts" : model;
+        var cacheKey = $"{normalizedModel}|{apiKey}";
+
+        return Cache.GetOrAdd(cacheKey, _ => new GeminiTtsClient(apiKey, normalizedModel, requestTimeout));
     }
 
-    static TextToSpeechClient BuildClient(string credentialsPath, string endpoint)
-    {
-        var builder = new TextToSpeechClientBuilder();
-
-        if (!string.IsNullOrEmpty(credentialsPath))
-        {
-            if (!File.Exists(credentialsPath))
-                throw new FileNotFoundException(
-                    $"Service account JSON not found: {credentialsPath}",
-                    credentialsPath);
-            // Read the JSON ourselves rather than letting the SDK take a raw
-            // path. Both ClientBuilder.CredentialsPath and GoogleCredential.FromFile
-            // / FromJson are marked obsolete; CredentialFactory is the
-            // still-supported loader.
-            var json = File.ReadAllText(credentialsPath);
-            builder.Credential = CredentialFactory.FromJson<GoogleCredential>(json);
-        }
-
-        if (!string.IsNullOrEmpty(endpoint))
-            builder.Endpoint = endpoint;
-
-        return builder.Build();
-    }
-
-    /// <summary>Returns raw LINEAR16 WAV bytes (with RIFF header) from Cloud TTS.</summary>
     public async Task<byte[]> SynthesizeAsync(SynthesisRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var input = new SynthesisInput { Text = request.Text };
-        if (!string.IsNullOrWhiteSpace(request.StylePrompt))
-            input.Prompt = request.StylePrompt;
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
-        var audio = new AudioConfig
+        var promptText = BuildPromptText(request.StylePrompt, request.AudioTag, request.Text);
+
+        var body = new GenerateContentBody
         {
-            AudioEncoding = AudioEncoding.Linear16,
-            SampleRateHertz = request.SampleRateHertz,
-        };
-        if (request.EffectsProfileIds is { Count: > 0 } effects)
-        {
-            foreach (var id in effects)
-                if (!string.IsNullOrWhiteSpace(id))
-                    audio.EffectsProfileId.Add(id);
-        }
-
-        // WithTimeout / WithCancellationToken are extension methods on CallSettings
-        // (Google.Api.Gax.Grpc.CallSettingsExtensions) that tolerate a null receiver.
-        CallSettings? callSettings = null;
-        if (requestTimeout is { } t)
-            callSettings = callSettings.WithTimeout(t);
-        callSettings = callSettings.WithCancellationToken(ct);
-
-        var response = await client.SynthesizeSpeechAsync(
-            new SynthesizeSpeechRequest
+            Contents =
+            [
+                new Content { Parts = [new Part { Text = promptText }] }
+            ],
+            GenerationConfig = new GenerationConfig
             {
-                Input = input,
-                Voice = new VoiceSelectionParams
+                ResponseModalities = ["AUDIO"],
+                SpeechConfig = new SpeechConfig
                 {
-                    LanguageCode = request.LanguageCode,
-                    Name = request.VoiceName,
-                    ModelName = ModelName,
-                },
-                AudioConfig = audio,
-            },
-            callSettings).ConfigureAwait(false);
+                    VoiceConfig = new VoiceConfig
+                    {
+                        PrebuiltVoiceConfig = new PrebuiltVoiceConfig
+                        {
+                            VoiceName = request.VoiceName,
+                        }
+                    }
+                }
+            }
+        };
 
-        return response.AudioContent.ToByteArray();
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(body, options: JsonOpts),
+        };
+
+        using var timeoutCts = requestTimeout.HasValue
+            ? CancellationTokenSource.CreateLinkedTokenSource(ct)
+            : null;
+        timeoutCts?.CancelAfter(requestTimeout!.Value);
+        var effectiveCt = timeoutCts?.Token ?? ct;
+
+        using var response = await HttpClient.SendAsync(httpRequest, effectiveCt).ConfigureAwait(false);
+        var responseBody = await response.Content.ReadAsStringAsync(effectiveCt).ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException(
+                $"Gemini TTS API error ({(int)response.StatusCode} {response.StatusCode}): {responseBody}");
+
+        var payload = JsonSerializer.Deserialize<GenerateContentResponse>(responseBody, JsonOpts);
+        var inlineData = payload?.Candidates?[0]?.Content?.Parts?[0]?.InlineData
+            ?? throw new InvalidOperationException(
+                "Gemini TTS response did not contain audio data. Body: " + responseBody);
+
+        var pcm = Convert.FromBase64String(inlineData.Data ?? string.Empty);
+        var sampleRate = ParseSampleRate(inlineData.MimeType, request.SampleRateHertz);
+
+        return WrapPcmAsWav(pcm, sampleRate);
     }
 
-    /// <summary>
-    /// Convenience overload that writes the synthesized audio to <paramref name="outputWavPath"/>.
-    /// </summary>
     public async Task SynthesizeToFileAsync(
         SynthesisRequest request, string outputWavPath, CancellationToken ct = default)
     {
@@ -149,17 +120,123 @@ public sealed class GeminiTtsClient
         await File.WriteAllBytesAsync(outputWavPath, bytes, ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Lists every Gemini-TTS voice the API reports for <paramref name="languageCode"/>.
-    /// Used by the settings "validate" UI — lets the user sanity-check that the
-    /// service-account key actually reaches Cloud TTS and that the voices we
-    /// bake into the catalog still exist.
-    /// </summary>
-    public async Task<ListVoicesResponse> ListGeminiVoicesAsync(
-        string languageCode = "", CancellationToken ct = default)
+    public static IReadOnlyList<string> ListKnownVoiceNames() =>
+        [.. Voices.VoiceCatalog.All.Select(v => v.Name)];
+
+    // 公式ガイドの推奨形式: Director's Notes → Transcript: [audio_tag] text
+    static string BuildPromptText(string? stylePrompt, string? audioTag, string text)
     {
-        return await client.ListVoicesAsync(
-            new ListVoicesRequest { LanguageCode = languageCode ?? string.Empty },
-            CallSettings.FromCancellationToken(ct)).ConfigureAwait(false);
+        var transcript = string.IsNullOrWhiteSpace(audioTag)
+            ? text
+            : $"{audioTag.Trim()} {text}";
+
+        if (string.IsNullOrWhiteSpace(stylePrompt))
+            return transcript;
+
+        return $"Director's Notes: {stylePrompt.Trim()}\n\nTranscript: {transcript}";
+    }
+
+    static int ParseSampleRate(string? mimeType, int fallback)
+    {
+        if (!string.IsNullOrEmpty(mimeType))
+        {
+            var idx = mimeType.IndexOf("rate=", StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0 && int.TryParse(mimeType[(idx + 5)..], out var rate))
+                return rate;
+        }
+        // Gemini TTS は常に 24000 Hz PCM を返す。ユーザー設定値をフォールバックにすると
+        // MIMEタイプ未取得時にWAVヘッダーが実際のPCMと乖離してピッチズレが起きるため固定。
+        return 24000;
+    }
+
+    static byte[] WrapPcmAsWav(byte[] pcm, int sampleRate)
+    {
+        const int channels = 1;
+        const int bitsPerSample = 16;
+        var byteRate = sampleRate * channels * bitsPerSample / 8;
+        var blockAlign = channels * bitsPerSample / 8;
+        var dataSize = pcm.Length;
+        var riffSize = 36 + dataSize;
+
+        var wav = new byte[44 + dataSize];
+        using var ms = new MemoryStream(wav);
+        using var w = new BinaryWriter(ms);
+        w.Write("RIFF"u8);
+        w.Write(riffSize);
+        w.Write("WAVE"u8);
+        w.Write("fmt "u8);
+        w.Write(16);
+        w.Write((short)1);
+        w.Write((short)channels);
+        w.Write(sampleRate);
+        w.Write(byteRate);
+        w.Write((short)blockAlign);
+        w.Write((short)bitsPerSample);
+        w.Write("data"u8);
+        w.Write(dataSize);
+        w.Write(pcm);
+        return wav;
+    }
+
+    static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+
+    // ---- DTO ----
+
+    sealed class GenerateContentBody
+    {
+        public required Content[] Contents { get; init; }
+        public GenerationConfig? GenerationConfig { get; init; }
+    }
+
+    sealed class Content
+    {
+        public required Part[] Parts { get; init; }
+    }
+
+    sealed class Part
+    {
+        public string? Text { get; init; }
+        public InlineData? InlineData { get; init; }
+    }
+
+    sealed class InlineData
+    {
+        public string? MimeType { get; init; }
+        public string? Data { get; init; }
+    }
+
+    sealed class GenerationConfig
+    {
+        public string[]? ResponseModalities { get; init; }
+        public SpeechConfig? SpeechConfig { get; init; }
+    }
+
+    sealed class SpeechConfig
+    {
+        public VoiceConfig? VoiceConfig { get; init; }
+    }
+
+    sealed class VoiceConfig
+    {
+        public PrebuiltVoiceConfig? PrebuiltVoiceConfig { get; init; }
+    }
+
+    sealed class PrebuiltVoiceConfig
+    {
+        public string? VoiceName { get; init; }
+    }
+
+    sealed class GenerateContentResponse
+    {
+        public Candidate[]? Candidates { get; init; }
+    }
+
+    sealed class Candidate
+    {
+        public Content? Content { get; init; }
     }
 }

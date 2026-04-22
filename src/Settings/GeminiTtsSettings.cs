@@ -10,30 +10,32 @@ namespace YMM4.GeminiTTS.Plugin.Settings;
 public class GeminiTtsSettings : SettingsBase<GeminiTtsSettings>
 {
     public override SettingsCategory Category => SettingsCategory.Voice;
-    public override string Name => "Gemini TTS";
+    public override string Name => "Geminiナレーター";
     public override bool HasSettingView => true;
     public override object? SettingView => new GeminiTtsSettingView { DataContext = this };
 
-    // ---- Credentials / transport ----
+    // ---- Credentials ----
 
-    string? serviceAccountJsonPath;
-    string endpoint = string.Empty;
+    string apiKey = string.Empty;
+    string modelName = "gemini-2.5-flash-preview-tts";
     int requestTimeoutSeconds = 60;
 
-    public string? ServiceAccountJsonPath
+    /// <summary>
+    /// Google AI Studio の API キー。aistudio.google.com → Get API key で取得。
+    /// </summary>
+    public string ApiKey
     {
-        get => serviceAccountJsonPath;
-        set => Set(ref serviceAccountJsonPath, value);
+        get => apiKey;
+        set => Set(ref apiKey, value ?? string.Empty);
     }
 
     /// <summary>
-    /// Optional Cloud TTS host override (e.g. <c>us-texttospeech.googleapis.com:443</c>).
-    /// Empty = global default host.
+    /// Gemini TTS モデル名。例: gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts
     /// </summary>
-    public string Endpoint
+    public string ModelName
     {
-        get => endpoint;
-        set => Set(ref endpoint, value ?? string.Empty);
+        get => modelName;
+        set => Set(ref modelName, string.IsNullOrWhiteSpace(value) ? "gemini-2.5-flash-preview-tts" : value);
     }
 
     public int RequestTimeoutSeconds
@@ -66,35 +68,17 @@ public class GeminiTtsSettings : SettingsBase<GeminiTtsSettings>
         set => Set(ref sampleRateHertz, value);
     }
 
-    // ---- Prompt & audio post-processing ----
+    // ---- Prompt / 辞書 ----
 
     string defaultStylePrompt =
         "プロのナレーターとして、落ち着いた口調で、聞き取りやすく話してください";
 
-    /// <summary>
-    /// Value for Cloud TTS <c>AudioConfig.effects_profile_id</c>. Empty = no
-    /// post-processing. Multiple profiles (semicolon-separated) are applied
-    /// left-to-right.
-    /// </summary>
-    string effectsProfileId = "headphone-class-device";
-
-    /// <summary>
-    /// Multi-line kanji→yomigana substitution table, one <c>phrase=yomi</c>
-    /// entry per line. Gemini TTS ignores Cloud TTS' <c>custom_pronunciations</c>
-    /// field, so the only reliable override is rewriting characters directly.
-    /// </summary>
     string userDictionary = string.Empty;
 
     public string DefaultStylePrompt
     {
         get => defaultStylePrompt;
         set => Set(ref defaultStylePrompt, value);
-    }
-
-    public string EffectsProfileId
-    {
-        get => effectsProfileId;
-        set => Set(ref effectsProfileId, value ?? string.Empty);
     }
 
     public string UserDictionary

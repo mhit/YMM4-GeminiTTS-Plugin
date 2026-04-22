@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
@@ -9,7 +9,7 @@
     <AssemblyName>YMM4.GeminiTTS.Plugin</AssemblyName>
     <Version>0.1.0</Version>
     <Authors>mhit</Authors>
-    <Description>Gemini 3.1 Flash TTS plugin for YukkuriMovieMaker 4.</Description>
+    <Description>Gemini 2.5 Flash TTS plugin for YukkuriMovieMaker 4.</Description>
     <Copyright>Copyright (c) 2026 mhit</Copyright>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
@@ -25,9 +25,11 @@
   -->
   <PropertyGroup>
     <YMM4Dir Condition="'$(YMM4Dir)' == ''">$(YMM4_DIR)</YMM4Dir>
+    <!-- Fallback to local libs/ directory if YMM4Dir is not set -->
+    <YMM4Dir Condition="'$(YMM4Dir)' == ''">$(MSBuildThisFileDirectory)libs</YMM4Dir>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(YMM4Dir)' != ''">
+  <ItemGroup>
     <Reference Include="YukkuriMovieMaker.Plugin">
       <HintPath>$(YMM4Dir)\YukkuriMovieMaker.Plugin.dll</HintPath>
       <Private>false</Private>
@@ -40,8 +42,18 @@
     </Reference>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Google.Cloud.TextToSpeech.V1" Version="3.18.0" />
-  </ItemGroup>
+  <!-- ビルド後に YMM4 を終了してプラグインフォルダへ自動展開 -->
+  <PropertyGroup>
+    <PluginDest>$(LOCALAPPDATA)\YukkuriMovieMaker4\user\plugin\YMM4.GeminiTTS.Plugin</PluginDest>
+  </PropertyGroup>
+  <Target Name="DeployPlugin" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="taskkill /IM YukkuriMovieMaker.exe /F 2&gt;nul || exit /B 0"
+          ContinueOnError="true" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll"
+          DestinationFolder="$(PluginDest)"
+          Condition="Exists('$(PluginDest)')" />
+    <Message Text="✓ Plugin deployed to $(PluginDest)" Importance="high"
+             Condition="Exists('$(PluginDest)')" />
+  </Target>
 
 </Project>

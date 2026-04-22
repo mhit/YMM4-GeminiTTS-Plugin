@@ -15,14 +15,14 @@ namespace YMM4.GeminiTTS.Plugin;
 /// </summary>
 public sealed class GeminiVoicePlugin : IVoicePlugin
 {
-    public string Name => "Gemini TTS";
+    public string Name => "Geminiナレーター";
 
     /// <summary>
     /// Hides the voices from the character editor until the user has configured
     /// credentials. Matches the pattern used by the official community plugin.
     /// </summary>
     public IEnumerable<IVoiceSpeaker> Voices =>
-        string.IsNullOrWhiteSpace(GeminiTtsSettings.Default.ServiceAccountJsonPath)
+        string.IsNullOrWhiteSpace(GeminiTtsSettings.Default.ApiKey)
             ? []
             : VoiceCatalog.All.Select(v => new GeminiVoiceSpeaker(v));
 

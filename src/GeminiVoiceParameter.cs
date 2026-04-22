@@ -7,21 +7,31 @@ namespace YMM4.GeminiTTS.Plugin;
 
 /// <summary>
 /// Per-utterance parameters shown in YMM4's voice parameter panel.
-/// Gemini TTS ignores numeric <c>pitch</c>/<c>speakingRate</c>, so this plugin
-/// exposes only a free-form style override.
 /// </summary>
 internal class GeminiVoiceParameter : VoiceParameterBase
 {
-    string stylePrompt = string.Empty;
+    VoiceTone voiceTone = VoiceTone.Default;
+    string customInstruction = string.Empty;
 
     [Display(
-        Name = "Style Prompt",
-        Description = "このセリフに前置する自然言語のスタイル指示 (例: 囁き声で、少しためらいながら)。空の場合はプラグイン設定のデフォルトが使われます。")]
+        Name = "口調・感情",
+        Description = "このセリフの話し方を選択。「設定に従う」はプラグイン設定のデフォルトスタイルを使用。")]
+    [EnumComboBox(EnumComboBoxItemOrderRule.DisplayOrder)]
+    [DefaultValue(VoiceTone.Default)]
+    public VoiceTone VoiceTone
+    {
+        get => voiceTone;
+        set => Set(ref voiceTone, value);
+    }
+
+    [Display(
+        Name = "カスタム指示",
+        Description = "「カスタム」選択時、またはプリセットに追加したい指示を入力。例: ゆっくりめに、少しためらいながら")]
     [TextEditor]
     [DefaultValue("")]
-    public string StylePrompt
+    public string CustomInstruction
     {
-        get => stylePrompt;
-        set => Set(ref stylePrompt, value ?? string.Empty);
+        get => customInstruction;
+        set => Set(ref customInstruction, value ?? string.Empty);
     }
 }
