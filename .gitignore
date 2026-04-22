@@ -1,0 +1,13 @@
+## Visual Studio / .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+## Build artifacts
+*.nupkg
+
+## OS
+.DS_Store
+Thumbs.db
