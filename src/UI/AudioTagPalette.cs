@@ -153,6 +153,14 @@ internal static class AudioTagPalette
                 win.DragMove();
         };
 
+        // YMM4 の ShutdownMode=OnLastWindowClose 対策:
+        // Close されそうになったら実際には閉じずに Collapsed にする
+        win.Closing += (_, e) =>
+        {
+            e.Cancel = true;
+            win.Visibility = Visibility.Collapsed;
+        };
+
         win.Show();
         return win;
     }
