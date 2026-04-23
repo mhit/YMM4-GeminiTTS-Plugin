@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using YMM4.GeminiTTS.Plugin.Synthesis;
+using YMM4.GeminiTTS.Plugin.UI;
 using YMM4.GeminiTTS.Plugin.Updater;
 using YMM4.GeminiTTS.Plugin.Voices;
 
@@ -49,6 +50,9 @@ public partial class GeminiTtsSettingView : UserControl
             UpdateBanner.Visibility = Visibility.Visible;
         });
     }
+
+    void ShowAudioTagPaletteButton_Click(object sender, RoutedEventArgs e) =>
+        AudioTagPalette.Toggle();
 
     void BulkRegisterButton_Click(object sender, RoutedEventArgs e)
     {
