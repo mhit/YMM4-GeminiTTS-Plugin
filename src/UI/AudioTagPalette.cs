@@ -43,7 +43,10 @@ internal static class AudioTagPalette
         Application.Current?.Dispatcher.Invoke(() =>
         {
             if (_window == null)
+            {
                 _window = CreateWindow();
+                return; // 新規作成時は Show() 済みなので閉じない
+            }
 
             _window.Visibility = _window.IsVisible
                 ? Visibility.Collapsed
