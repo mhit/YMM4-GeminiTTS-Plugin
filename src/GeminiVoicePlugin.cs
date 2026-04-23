@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Input;
+using System.Windows;
 using YukkuriMovieMaker.Plugin;
 using YukkuriMovieMaker.Plugin.Voice;
-using YukkuriMovieMaker.Plugin.Tool;
 using YMM4.GeminiTTS.Plugin.Settings;
 using YMM4.GeminiTTS.Plugin.UI;
 using YMM4.GeminiTTS.Plugin.Updater;
@@ -12,14 +11,21 @@ using YMM4.GeminiTTS.Plugin.Voices;
 
 namespace YMM4.GeminiTTS.Plugin;
 
-public sealed class GeminiVoicePlugin : IVoicePlugin, IToolPlugin
+public sealed class GeminiVoicePlugin : IVoicePlugin
 {
     public GeminiVoicePlugin()
     {
         UpdateChecker.CheckOnce();
-    }
 
-    // ── IVoicePlugin ──────────────────────────────────────────────────────
+        // YMM4 のメインウィンドウが表示されてから Audio Tag パレットを自動表示
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            if (Application.Current?.MainWindow is Window w)
+                w.Loaded += (_, _) => AudioTagPalette.EnsureVisible();
+            else
+                AudioTagPalette.EnsureVisible();
+        });
+    }
 
     public string Name => "Geminiナレーター";
 
@@ -33,35 +39,4 @@ public sealed class GeminiVoicePlugin : IVoicePlugin, IToolPlugin
     public Task UpdateVoicesAsync() => Task.CompletedTask;
 
     public PluginDetailsAttribute Details => new() { AuthorName = "mhit" };
-
-    // ── IToolPlugin ───────────────────────────────────────────────────────
-
-    public IEnumerable<ToolBarGroup> GetToolBarGroups()
-    {
-        var toggleCmd = new RelayCommand(() => AudioTagPalette.Toggle());
-
-        return
-        [
-            new ToolBarGroup
-            {
-                Items =
-                [
-                    new ToolBarItem
-                    {
-                        Name = "🏷 Audio Tag",
-                        ToolTip = "Audio Tag 挿入パレットを表示/非表示",
-                        Command = toggleCmd,
-                    },
-                ],
-            },
-        ];
-    }
-}
-
-/// <summary>シンプルな ICommand 実装。</summary>
-file sealed class RelayCommand(Action execute) : ICommand
-{
-    public event EventHandler? CanExecuteChanged;
-    public bool CanExecute(object? _) => true;
-    public void Execute(object? _) => execute();
 }
