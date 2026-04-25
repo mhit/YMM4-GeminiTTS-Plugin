@@ -1,4 +1,7 @@
 using System;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using YukkuriMovieMaker.Commons;
 using YukkuriMovieMaker.Plugin;
@@ -32,18 +35,57 @@ public sealed class AudioTagToolViewModel : Bindable, IToolViewModel
         tag =>
         {
             if (tag is not string t) return;
-            var focused = System.Windows.Input.Keyboard.FocusedElement
-                as System.Windows.Controls.TextBox;
-            if (focused == null) return;
-            var idx = focused.SelectionStart;
-            focused.Text = focused.Text.Insert(idx, t);
-            focused.SelectionStart = idx + t.Length;
-            focused.SelectionLength = 0;
+            TextInserter.Insert(t);
         });
 
     public ToolState SaveState() => new() { Title = Title };
     public void LoadState(ToolState _) { }
 }
 
-// ValueTuple は WPF バインディングで Item1/Item2 になるため record を使う
+/// <summary>
+/// フォーカスされたテキスト入力欄を記憶し、カーソル位置にタグを挿入する。
+/// YMM4 のセリフ欄は RichTextBox（RichTextEditor 内部）なので両方に対応。
+/// </summary>
+internal static class TextInserter
+{
+    static UIElement? _lastFocused;
+
+    static TextInserter()
+    {
+        // TextBox のフォーカスを記憶（カスタム指示欄など）
+        EventManager.RegisterClassHandler(
+            typeof(TextBox),
+            UIElement.GotKeyboardFocusEvent,
+            new KeyboardFocusChangedEventHandler((s, _) => _lastFocused = s as UIElement));
+
+        // RichTextBox のフォーカスを記憶（YMM4 のセリフ欄 = RichTextEditor の内部）
+        EventManager.RegisterClassHandler(
+            typeof(RichTextBox),
+            UIElement.GotKeyboardFocusEvent,
+            new KeyboardFocusChangedEventHandler((s, _) => _lastFocused = s as UIElement));
+    }
+
+    public static void Insert(string text)
+    {
+        switch (_lastFocused)
+        {
+            case TextBox tb:
+                var idx = tb.SelectionStart;
+                tb.Text = tb.Text.Insert(idx, text);
+                tb.SelectionStart = idx + text.Length;
+                tb.SelectionLength = 0;
+                break;
+
+            case RichTextBox rtb:
+                // RichTextBox のキャレット位置にテキストを挿入
+                var pos = rtb.CaretPosition;
+                pos.InsertTextInRun(text);
+                // キャレットを挿入後に移動
+                rtb.CaretPosition = rtb.CaretPosition.GetPositionAtOffset(text.Length)
+                    ?? rtb.CaretPosition;
+                break;
+        }
+    }
+}
+
 public sealed record TagItem(string Label, string Tag, string ToolTip);
