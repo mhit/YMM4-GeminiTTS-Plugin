@@ -11,21 +11,21 @@ public sealed class AudioTagToolViewModel : Bindable, IToolViewModel
 
     public string Title => "Audio Tag";
 
-    static readonly (string Label, string Tag, string ToolTip)[] Tags =
+    static readonly TagItem[] Tags =
     [
-        ("囁き",   "[whispers]",    "ひそひそ声"),
-        ("叫び",   "[shouting]",    "叫ぶ・大声"),
-        ("興奮",   "[excited]",     "興奮・テンション高め"),
-        ("笑い",   "[laughs]",      "笑いながら"),
-        ("泣き",   "[crying]",      "泣きながら"),
-        ("真剣",   "[serious]",     "真剣・厳粛"),
-        ("好奇心", "[curious]",     "不思議そう"),
-        ("─ 短",   "[short pause]", "短い間"),
-        ("─ 中",   "[medium pause]","中程度の間"),
-        ("─ 長",   "[long pause]",  "長い間"),
+        new("囁き",   "[whispers]",    "ひそひそ声"),
+        new("叫び",   "[shouting]",    "叫ぶ・大声"),
+        new("興奮",   "[excited]",     "興奮・テンション高め"),
+        new("笑い",   "[laughs]",      "笑いながら"),
+        new("泣き",   "[crying]",      "泣きながら"),
+        new("真剣",   "[serious]",     "真剣・厳粛"),
+        new("好奇心", "[curious]",     "不思議そう"),
+        new("─ 短",   "[short pause]", "短い間"),
+        new("─ 中",   "[medium pause]","中程度の間"),
+        new("─ 長",   "[long pause]",  "長い間"),
     ];
 
-    public (string Label, string Tag, string ToolTip)[] TagItems => Tags;
+    public TagItem[] TagItems => Tags;
 
     public ICommand InsertTagCommand { get; } = new ActionCommand(
         _ => true,
@@ -44,3 +44,6 @@ public sealed class AudioTagToolViewModel : Bindable, IToolViewModel
     public ToolState SaveState() => new() { Title = Title };
     public void LoadState(ToolState _) { }
 }
+
+// ValueTuple は WPF バインディングで Item1/Item2 になるため record を使う
+public sealed record TagItem(string Label, string Tag, string ToolTip);
