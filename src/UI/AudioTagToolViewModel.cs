@@ -62,8 +62,9 @@ public sealed record TagItem(string Label, string Tag, string ToolTip);
 public sealed record TagGroup(string Header, TagItem[] Items);
 
 /// <summary>
-/// クリップボード経由でテキストを挿入する。
-/// WPF の FocusScope をまたぐ場合でも OS レベルの Ctrl+V で確実に動作する。
+/// フォーカスを記録し、クリップボード経由でテキストを挿入する。
+/// IToolPlugin のドッキングパネルは独立した FocusScope のため、
+/// セリフ欄のフォーカスを事前に記録して Focus() で戻してから Ctrl+V を送信する。
 /// </summary>
 internal static class ClipboardInsert
 {
@@ -74,37 +75,56 @@ internal static class ClipboardInsert
     const byte VK_V = 0x56;
     const uint KEYEVENTF_KEYUP = 0x0002;
 
+    // ツールパネル以外でフォーカスされた最後の UIElement を記録
+    static IInputElement? _lastTarget;
+
+    static ClipboardInsert()
+    {
+        // アプリ全体の KeyboardFocus 変化を監視
+        // ツールパネルのボタン（Focusable=false）以外の要素を記録
+        EventManager.RegisterClassHandler(
+            typeof(UIElement),
+            UIElement.GotKeyboardFocusEvent,
+            new KeyboardFocusChangedEventHandler((s, e) =>
+            {
+                if (s is UIElement { Focusable: true } elem)
+                    _lastTarget = elem;
+            }));
+    }
+
     public static void Send(string text)
     {
-        // クリップボードを保存
-        var prev = GetClipboard();
+        var prev = SafeGetClipboard();
         Clipboard.SetText(text);
 
-        // Ctrl+V を送信（OS レベル）
+        // 記録したセリフ欄にフォーカスを戻してから Ctrl+V
+        if (_lastTarget != null)
+        {
+            Keyboard.Focus(_lastTarget);
+        }
+
         keybd_event(VK_CONTROL, 0, 0, 0);
         keybd_event(VK_V, 0, 0, 0);
         keybd_event(VK_V, 0, KEYEVENTF_KEYUP, 0);
         keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
 
-        // 少し待ってからクリップボードを復元
+        // 200ms 後にクリップボードを復元
         System.Threading.Tasks.Task.Delay(200).ContinueWith(_ =>
-            Application.Current?.Dispatcher.Invoke(() => RestoreClipboard(prev)));
+            Application.Current?.Dispatcher.Invoke(() => SafeRestoreClipboard(prev)));
     }
 
-    static (string? text, bool hasText) GetClipboard()
+    static (string? text, bool hasText) SafeGetClipboard()
     {
         try { return (Clipboard.GetText(), Clipboard.ContainsText()); }
         catch { return (null, false); }
     }
 
-    static void RestoreClipboard((string? text, bool hasText) prev)
+    static void SafeRestoreClipboard((string? text, bool hasText) prev)
     {
         try
         {
-            if (prev.hasText && prev.text != null)
-                Clipboard.SetText(prev.text);
-            else
-                Clipboard.Clear();
+            if (prev.hasText && prev.text != null) Clipboard.SetText(prev.text);
+            else Clipboard.Clear();
         }
         catch { }
     }
