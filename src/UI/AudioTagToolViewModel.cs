@@ -1,7 +1,6 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Input;
 using YukkuriMovieMaker.Commons;
 using YukkuriMovieMaker.Plugin;
@@ -14,78 +13,99 @@ public sealed class AudioTagToolViewModel : Bindable, IToolViewModel
 
     public string Title => "Audio Tag";
 
-    static readonly TagItem[] Tags =
+    public TagGroup[] Groups { get; } =
     [
-        new("囁き",   "[whispers]",    "ひそひそ声"),
-        new("叫び",   "[shouting]",    "叫ぶ・大声"),
-        new("興奮",   "[excited]",     "興奮・テンション高め"),
-        new("笑い",   "[laughs]",      "笑いながら"),
-        new("泣き",   "[crying]",      "泣きながら"),
-        new("真剣",   "[serious]",     "真剣・厳粛"),
-        new("好奇心", "[curious]",     "不思議そう"),
-        new("─ 短",   "[short pause]", "短い間"),
-        new("─ 中",   "[medium pause]","中程度の間"),
-        new("─ 長",   "[long pause]",  "長い間"),
+        new("😮 感情・口調", [
+            new("囁き",       "[whispers]",       "静かに囁く・ひそひそ声"),
+            new("叫び",       "[shouting]",       "大声で叫ぶ"),
+            new("興奮",       "[excited]",        "テンション高め・興奮"),
+            new("笑い",       "[laughs]",         "笑いながら話す"),
+            new("くすくす",   "[giggles]",        "くすくす笑う"),
+            new("泣き",       "[crying]",         "泣きながら話す"),
+            new("真剣",       "[serious]",        "真剣・威厳ある口調"),
+            new("好奇心",     "[curious]",        "不思議そう・疑問"),
+            new("ためらい",   "[hesitates]",      "言葉に詰まる"),
+            new("息をのむ",   "[gasps]",          "驚いて息をのむ"),
+        ]),
+        new("💨 動作・反応", [
+            new("ため息",     "[sighs]",          "ため息をつく"),
+            new("咳払い",     "[clears throat]",  "咳払い"),
+            new("鼻すする",   "[sniffs]",         "鼻をすする"),
+            new("あくび",     "[yawns]",          "あくびをする"),
+            new("鼻を鳴らす", "[snorts]",         "鼻を鳴らす・冷笑"),
+        ]),
+        new("⏸ 間・ポーズ", [
+            new("短い間",     "[short pause]",    "短い間（0.5秒程度）"),
+            new("中程度の間", "[medium pause]",   "中程度の間（1秒程度）"),
+            new("長い間",     "[long pause]",     "長い間（2秒程度）"),
+        ]),
     ];
 
-    public TagItem[] TagItems => Tags;
+    public ICommand InsertTagCommand { get; }
 
-    public ICommand InsertTagCommand { get; } = new ActionCommand(
-        _ => true,
-        tag =>
-        {
-            if (tag is not string t) return;
-            TextInserter.Insert(t);
-        });
+    public AudioTagToolViewModel()
+    {
+        InsertTagCommand = new ActionCommand(
+            _ => true,
+            tag =>
+            {
+                if (tag is not string t) return;
+                ClipboardInsert.Send(t);
+            });
+    }
 
     public ToolState SaveState() => new() { Title = Title };
     public void LoadState(ToolState _) { }
 }
 
+public sealed record TagItem(string Label, string Tag, string ToolTip);
+public sealed record TagGroup(string Header, TagItem[] Items);
+
 /// <summary>
-/// フォーカスされたテキスト入力欄を記憶し、カーソル位置にタグを挿入する。
-/// YMM4 のセリフ欄は RichTextBox（RichTextEditor 内部）なので両方に対応。
+/// クリップボード経由でテキストを挿入する。
+/// WPF の FocusScope をまたぐ場合でも OS レベルの Ctrl+V で確実に動作する。
 /// </summary>
-internal static class TextInserter
+internal static class ClipboardInsert
 {
-    static UIElement? _lastFocused;
+    [DllImport("user32.dll")]
+    static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, nuint dwExtraInfo);
 
-    static TextInserter()
+    const byte VK_CONTROL = 0x11;
+    const byte VK_V = 0x56;
+    const uint KEYEVENTF_KEYUP = 0x0002;
+
+    public static void Send(string text)
     {
-        // TextBox のフォーカスを記憶（カスタム指示欄など）
-        EventManager.RegisterClassHandler(
-            typeof(TextBox),
-            UIElement.GotKeyboardFocusEvent,
-            new KeyboardFocusChangedEventHandler((s, _) => _lastFocused = s as UIElement));
+        // クリップボードを保存
+        var prev = GetClipboard();
+        Clipboard.SetText(text);
 
-        // RichTextBox のフォーカスを記憶（YMM4 のセリフ欄 = RichTextEditor の内部）
-        EventManager.RegisterClassHandler(
-            typeof(RichTextBox),
-            UIElement.GotKeyboardFocusEvent,
-            new KeyboardFocusChangedEventHandler((s, _) => _lastFocused = s as UIElement));
+        // Ctrl+V を送信（OS レベル）
+        keybd_event(VK_CONTROL, 0, 0, 0);
+        keybd_event(VK_V, 0, 0, 0);
+        keybd_event(VK_V, 0, KEYEVENTF_KEYUP, 0);
+        keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
+
+        // 少し待ってからクリップボードを復元
+        System.Threading.Tasks.Task.Delay(200).ContinueWith(_ =>
+            Application.Current?.Dispatcher.Invoke(() => RestoreClipboard(prev)));
     }
 
-    public static void Insert(string text)
+    static (string? text, bool hasText) GetClipboard()
     {
-        switch (_lastFocused)
-        {
-            case TextBox tb:
-                var idx = tb.SelectionStart;
-                tb.Text = tb.Text.Insert(idx, text);
-                tb.SelectionStart = idx + text.Length;
-                tb.SelectionLength = 0;
-                break;
+        try { return (Clipboard.GetText(), Clipboard.ContainsText()); }
+        catch { return (null, false); }
+    }
 
-            case RichTextBox rtb:
-                // RichTextBox のキャレット位置にテキストを挿入
-                var pos = rtb.CaretPosition;
-                pos.InsertTextInRun(text);
-                // キャレットを挿入後に移動
-                rtb.CaretPosition = rtb.CaretPosition.GetPositionAtOffset(text.Length)
-                    ?? rtb.CaretPosition;
-                break;
+    static void RestoreClipboard((string? text, bool hasText) prev)
+    {
+        try
+        {
+            if (prev.hasText && prev.text != null)
+                Clipboard.SetText(prev.text);
+            else
+                Clipboard.Clear();
         }
+        catch { }
     }
 }
-
-public sealed record TagItem(string Label, string Tag, string ToolTip);

@@ -6,27 +6,38 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=local:AudioTagToolViewModel}"
-             MinWidth="160">
-    <StackPanel Margin="8">
-        <TextBlock Text="セリフ欄にカーソルを置いてボタンを押すと、その位置にタグを挿入します。"
-                   TextWrapping="Wrap" FontSize="11" Opacity="0.65" Margin="0,0,0,8"/>
-        <ItemsControl ItemsSource="{Binding TagItems}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Button Content="{Binding Label}"
-                            ToolTip="{Binding ToolTip}"
-                            Command="{Binding DataContext.InsertTagCommand,
-                                RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                            CommandParameter="{Binding Tag}"
-                            Focusable="False"
-                            Padding="8,4" Margin="2"/>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-    </StackPanel>
+             MinWidth="180">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="6">
+            <TextBlock Text="セリフ欄にカーソルを置いてからボタンを押すと挿入されます。"
+                       TextWrapping="Wrap" FontSize="11" Opacity="0.6" Margin="0,0,0,6"/>
+
+            <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type local:TagGroup}">
+                        <Expander Header="{Binding Header}" IsExpanded="True" Margin="0,0,0,4">
+                            <ItemsControl ItemsSource="{Binding Items}" Margin="4,4,0,4">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type local:TagItem}">
+                                        <Button Content="{Binding Label}"
+                                                ToolTip="{Binding ToolTip}"
+                                                Command="{Binding DataContext.InsertTagCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}"
+                                                CommandParameter="{Binding Tag}"
+                                                Focusable="False"
+                                                Padding="7,3" Margin="2"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Expander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
