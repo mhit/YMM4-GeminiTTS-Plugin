@@ -9,6 +9,9 @@
              FocusManager.IsFocusScope="False"
              Focusable="False"
              MinWidth="200">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
     <DockPanel>
         <!-- コピー完了通知バー -->
         <Border DockPanel.Dock="Top"
