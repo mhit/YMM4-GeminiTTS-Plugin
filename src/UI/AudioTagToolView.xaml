@@ -2,14 +2,31 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:YMM4.GeminiTTS.Plugin.UI"
-             d:DataContext="{d:DesignInstance Type=local:AudioTagToolViewModel}"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=local:AudioTagToolViewModel}"
              MinWidth="160">
     <StackPanel Margin="8">
-        <TextBlock Text="セリフ欄にカーソルを置いてボタンを押すとタグを挿入します。"
+        <TextBlock Text="セリフ欄にカーソルを置いてボタンを押すと、その位置にタグを挿入します。"
                    TextWrapping="Wrap" FontSize="11" Opacity="0.65" Margin="0,0,0,8"/>
-        <WrapPanel x:Name="ButtonPanel"/>
+        <ItemsControl ItemsSource="{Binding TagItems}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Content="{Binding Label}"
+                            ToolTip="{Binding ToolTip}"
+                            Command="{Binding DataContext.InsertTagCommand,
+                                RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding Tag}"
+                            Focusable="False"
+                            Padding="8,4" Margin="2"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </StackPanel>
 </UserControl>
